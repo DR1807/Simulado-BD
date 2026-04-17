@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Simulado Banco de Dados I</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0e1420;
+    --surface2: #141c2e;
+    --border: #1e2d4a;
+    --border2: #253550;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --accent-glow: rgba(59,130,246,0.18);
+    --green: #22c55e;
+    --green-glow: rgba(34,197,94,0.15);
+    --red: #f43f5e;
+    --red-glow: rgba(244,63,94,0.15);
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #4a5d7a;
+    --radius: 14px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow orbs */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px; left: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 40px 0 32px;
+  }
+
+  .logo-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-glow);
+    border: 1px solid var(--border2);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .logo-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 6px var(--accent2);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:.4;transform:scale(.8);}
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 6vw, 46px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #e2e8f0 30%, #60a5fa 70%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 300;
+    letter-spacing: 0.01em;
+  }
+  .subtitle span {
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  /* META ROW */
+  .meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 28px 0 12px;
+    flex-wrap: wrap;
+  }
+
+  .meta-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .meta-badge strong { color: var(--text); font-weight: 500; }
+
+  .btn-shuffle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-shuffle:hover {
+    border-color: var(--accent);
+    color: var(--accent2);
+    background: var(--accent-glow);
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    margin-bottom: 28px;
+  }
+  .progress-bar-bg {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #818cf8);
+    border-radius: 99px;
+    transition: width .4s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 10px rgba(59,130,246,.4);
+  }
+
+  /* QUESTION CARD */
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 28px 24px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: opacity .25s, transform .25s;
+  }
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), #818cf8, transparent);
+  }
+
+  .q-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .q-number::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .q-text {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(15px, 2.5vw, 18px);
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 28px;
+  }
+
+  /* OPTIONS */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all .18s ease;
+    user-select: none;
+  }
+  .option:hover:not(.disabled) {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    transform: translateX(3px);
+  }
+  .option.selected {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .option.disabled { cursor: default; }
+
+  .opt-letter {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .18s;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .option.selected .opt-letter {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .opt-text {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.55;
+    transition: color .18s;
+    flex: 1;
+  }
+  .option.selected .opt-text { color: var(--text); }
+
+  /* NAV BUTTONS */
+  .nav-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 10px;
+    padding: 11px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+    border: none;
+    outline: none;
+  }
+  .btn:active { transform: scale(.97); }
+
+  .btn-back {
+    background: var(--surface2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .btn-back:hover { border-color: var(--border2); color: var(--text); }
+
+  .btn-next {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(59,130,246,.3);
+    margin-left: auto;
+  }
+  .btn-next:hover { background: #2563eb; box-shadow: 0 4px 28px rgba(59,130,246,.45); }
+  .btn-next:disabled {
+    background: var(--surface2);
+    color: var(--text3);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .btn-finish {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(34,197,94,.3);
+    margin-left: auto;
+  }
+  .btn-finish:hover { box-shadow: 0 4px 28px rgba(34,197,94,.45); filter: brightness(1.05); }
+  .btn-finish:disabled {
+    background: var(--surface2);
+    color: var(--text3);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .btn-restart {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border2);
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+    font-size: 15px;
+    padding: 14px;
+  }
+  .btn-restart:hover { border-color: var(--accent); color: var(--accent2); }
+
+  /* RESULTS */
+  #results-screen { display: none; }
+
+  .result-header {
+    text-align: center;
+    padding: 40px 0 32px;
+  }
+
+  .score-ring-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 24px 0 32px;
+  }
+  .score-ring {
+    position: relative;
+    width: 140px;
+    height: 140px;
+  }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring-bg { fill: none; stroke: var(--surface2); stroke-width: 8; }
+  .score-ring-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);
+  }
+  .score-ring-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .score-pct {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .score-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 12px;
+    text-align: center;
+  }
+  .stat-card.green { border-color: #166534; background: var(--green-glow); }
+  .stat-card.red   { border-color: #9f1239; background: var(--red-glow); }
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .stat-card.green .stat-val { color: var(--green); }
+  .stat-card.red   .stat-val { color: var(--red); }
+  .stat-card:not(.green):not(.red) .stat-val { color: var(--accent2); }
+  .stat-lbl {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  /* GABARITO */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .gabarito-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .gab-item {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .gab-item.hit  { border-color: #166534; background: var(--green-glow); color: var(--green); }
+  .gab-item.miss { border-color: #9f1239; background: var(--red-glow);   color: var(--red); }
+
+  /* REVIEW */
+  .review-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
+
+  .review-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+  }
+  .review-item.hit  { border-left: 3px solid var(--green); }
+  .review-item.miss { border-left: 3px solid var(--red); }
+
+  .review-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .review-q {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .review-answers { display: flex; flex-direction: column; gap: 6px; }
+
+  .review-ans {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .review-ans .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .tag-user   { background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); }
+  .tag-correct { background: var(--green-glow); border: 1px solid #166534; color: var(--green); }
+  .review-item.hit .tag-user { background: var(--green-glow); border-color: #166534; color: var(--green); }
+  .review-item.miss .tag-user { background: var(--red-glow); border-color: #9f1239; color: var(--red); }
+
+  .result-icon {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-size: 16px;
+  }
+
+  /* Unanswered warning */
+  .warn-msg {
+    display: none;
+    color: var(--yellow);
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(245,158,11,.3);
+    background: rgba(245,158,11,.06);
+    margin-bottom: 12px;
+  }
+
+  /* Slide transition */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideInBack {
+    from { opacity: 0; transform: translateX(-18px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .anim-in      { animation: slideIn     .22s ease forwards; }
+  .anim-in-back { animation: slideInBack .22s ease forwards; }
+
+  /* SCREEN TOGGLE */
+  #quiz-screen   { display: block; }
+  #start-screen  { display: block; }
+  .hidden { display: none !important; }
+
+  /* START SCREEN */
+  .start-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px 32px;
+    text-align: center;
+    margin-top: 16px;
+  }
+  .start-card h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .start-card p {
+    color: var(--text2);
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+  .start-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    text-align: left;
+    margin-bottom: 28px;
+  }
+  .feat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .feat-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .btn-start {
+    background: var(--accent);
+    color: #fff;
+    width: 100%;
+    justify-content: center;
+    padding: 15px;
+    font-size: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 28px rgba(59,130,246,.35);
+  }
+  .btn-start:hover { background: #2563eb; }
+
+  @media(max-width: 540px){
+    .question-card { padding: 22px 16px 18px; }
+    .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .start-features { grid-template-columns: 1fr; }
+    .meta-row { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- START SCREEN -->
+  <div id="start-screen">
+    <header>
+      <div class="logo-tag">UniCEUB · Prof. Wellington · 2026</div>
+      <h1>Simulado<br>Banco de Dados I</h1>
+      <p class="subtitle">Exercício de Revisão — <span>Modelagem de Dados · 1º Bimestre</span></p>
+    </header>
+    <div class="start-card">
+      <h2>Pronto para o simulado?</h2>
+      <p>34 questões de múltipla escolha baseadas exatamente no material de revisão do Prof. Wellington. O gabarito só aparece ao finalizar.</p>
+      <div class="start-features">
+        <div class="feat"><div class="feat-icon">📋</div> 34 questões objetivas</div>
+        <div class="feat"><div class="feat-icon">🔀</div> Embaralhamento disponível</div>
+        <div class="feat"><div class="feat-icon">📊</div> Resultado com %</div>
+        <div class="feat"><div class="feat-icon">🔍</div> Revisão detalhada</div>
+        <div class="feat"><div class="feat-icon">📱</div> Funciona no celular</div>
+        <div class="feat"><div class="feat-icon">🎯</div> Gabarito completo</div>
+      </div>
+      <button class="btn btn-start" onclick="startQuiz()">Iniciar Simulado →</button>
+    </div>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quiz-screen" class="hidden">
+    <header>
+      <div class="logo-tag">UniCEUB · Prof. Wellington · 2026</div>
+      <h1>Simulado<br>Banco de Dados I</h1>
+      <p class="subtitle">Modelagem de Dados — <span>1º Bimestre 2026</span></p>
+    </header>
+
+    <div class="meta-row">
+      <div class="meta-badge">Questão <strong id="q-counter">1 / 34</strong></div>
+      <div class="meta-badge">Respondidas: <strong id="answered-count">0</strong></div>
+      <button class="btn-shuffle" onclick="shuffleQuestions()" title="Embaralhar questões">
+        ⇄ Embaralhar
+      </button>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="question-card" id="question-card">
+      <div class="q-number" id="q-num-label">Questão 01</div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options" id="options-list"></div>
+    </div>
+
+    <div class="warn-msg" id="warn-msg">⚠ Selecione uma alternativa antes de avançar.</div>
+
+    <div class="nav-row">
+      <button class="btn btn-back" id="btn-back" onclick="goBack()" style="display:none">← Voltar</button>
+      <button class="btn btn-next" id="btn-next" onclick="goNext()">Próxima →</button>
+      <button class="btn btn-finish hidden" id="btn-finish" onclick="finishQuiz()">✓ Finalizar Prova</button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="results-screen">
+    <header>
+      <div class="logo-tag">UniCEUB · Resultado Final</div>
+      <h1>Resultado<br>do Simulado</h1>
+    </header>
+
+    <div class="score-ring-wrap">
+      <div class="score-ring">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle class="score-ring-bg" cx="70" cy="70" r="58"/>
+          <circle class="score-ring-fill" id="ring-fill" cx="70" cy="70" r="58"
+            stroke-dasharray="364.4" stroke-dashoffset="364.4"/>
+        </svg>
+        <div class="score-ring-text">
+          <div class="score-pct" id="score-pct">0%</div>
+          <div class="score-label">acertos</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="stat-val" id="stat-hits">0</div>
+        <div class="stat-lbl">Acertos</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-val" id="stat-miss">0</div>
+        <div class="stat-lbl">Erros</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-total">34</div>
+        <div class="stat-lbl">Total</div>
+      </div>
+    </div>
+
+    <div class="section-title">Gabarito</div>
+    <div class="gabarito-grid" id="gabarito-grid"></div>
+
+    <div class="section-title">Revisão das Respostas</div>
+    <div class="review-list" id="review-list"></div>
+
+    <button class="btn btn-restart" onclick="restartQuiz()">↺ Refazer Simulado</button>
+  </div>
+
+</div>
+
+<script>
+const ALL_QUESTIONS = [
+  {
+    num: 1,
+    text: "O que é Banco de dados ?",
+    options: [
+      "Conjunto organizado de dados relacionados entre si, armazenados para fácil acesso, manipulação e atualização.",
+      "Conjunto de arquivos físicos armazenados em servidores, sem relação entre si.",
+      "Software responsável por processar informações e gerar relatórios automáticos.",
+      "Sistema de comunicação entre computadores em uma rede corporativa."
+    ],
+    correct: 0
+  },
+  {
+    num: 2,
+    text: "O que é dado?",
+    options: [
+      "Informação já processada e contextualizada para o usuário.",
+      "Conjunto de regras que define como os dados são armazenados.",
+      "Fato bruto, sem interpretação.",
+      "Resultado de uma consulta feita ao banco de dados."
+    ],
+    correct: 2
+  },
+  {
+    num: 3,
+    text: "O que é Informação?",
+    options: [
+      "Fato bruto coletado diretamente de uma fonte externa.",
+      "Dado processado com significado.",
+      "Conjunto de instruções para manipulação de dados.",
+      "Estrutura lógica que organiza os dados no banco."
+    ],
+    correct: 1
+  },
+  {
+    num: 4,
+    text: "O que é dado Persistente?",
+    options: [
+      "Dado temporário utilizado apenas durante a execução de um programa.",
+      "Dado replicado em múltiplos servidores para maior disponibilidade.",
+      "Dado que só existe em memória RAM durante o processamento.",
+      "Dado armazenado de forma permanente, mesmo após o sistema ser desligado."
+    ],
+    correct: 3
+  },
+  {
+    num: 5,
+    text: "O que é conhecimento?",
+    options: [
+      "Dado bruto coletado de sensores e dispositivos externos.",
+      "Estrutura que define os tipos de dados aceitos em um campo.",
+      "Informação aplicada com experiência e interpretação.",
+      "Conjunto de registros armazenados em uma tabela relacional."
+    ],
+    correct: 2
+  },
+  {
+    num: 6,
+    text: "O que é Modelo de Dados ?",
+    options: [
+      "Ferramenta de backup para recuperação de dados corrompidos.",
+      "Linguagem utilizada para consultar e manipular registros no banco.",
+      "Forma de representar como os dados são organizados no banco.",
+      "Conjunto de políticas de segurança aplicadas ao banco de dados."
+    ],
+    correct: 2
+  },
+  {
+    num: 7,
+    text: "O que é SGBD?",
+    options: [
+      "Linguagem de consulta estruturada para acessar tabelas.",
+      "Sistema que gerencia banco de dados.",
+      "Diagrama que representa as entidades e seus relacionamentos.",
+      "Protocolo de comunicação entre aplicações e servidores."
+    ],
+    correct: 1
+  },
+  {
+    num: 8,
+    text: "O que é DBA ?",
+    options: [
+      "Diagrama de base de atributos usado na modelagem lógica.",
+      "Desenvolvedor responsável por criar aplicações que acessam o banco.",
+      "Administrador de banco de dados.",
+      "Linguagem de definição de dados utilizada pelo SGBD."
+    ],
+    correct: 2
+  },
+  {
+    num: 9,
+    text: "O que é Administrador de dados?",
+    options: [
+      "Responsável por instalar e configurar o servidor de banco de dados.",
+      "Profissional que desenvolve consultas SQL para geração de relatórios.",
+      "Responsável pelas regras e organização dos dados.",
+      "Usuário final que acessa o banco apenas para leitura de informações."
+    ],
+    correct: 2
+  },
+  {
+    num: 10,
+    text: "Quais as funções do DBA?",
+    options: [
+      "Desenvolver interfaces gráficas e relatórios para os usuários finais.",
+      "Instalar, configurar, manter segurança, backup e desempenho do banco.",
+      "Criar os modelos de entidade-relacionamento e validar com o cliente.",
+      "Gerenciar os requisitos de negócio e aprovar mudanças nas regras."
+    ],
+    correct: 1
+  },
+  {
+    num: 11,
+    text: "O que é Inteligência?",
+    options: [
+      "Dado estruturado em formato numérico para análise estatística.",
+      "Capacidade de interpretar informações e tomar decisões.",
+      "Sistema que automatiza consultas ao banco de dados.",
+      "Conjunto de metadados que descrevem a estrutura do banco."
+    ],
+    correct: 1
+  },
+  {
+    num: 12,
+    text: "Dê exemplo de SGBD?",
+    options: [
+      "Python, Java, C#, PHP.",
+      "HTML, CSS, JavaScript, TypeScript.",
+      "Apache, Nginx, IIS, Tomcat.",
+      "MySQL, Oracle, SQL Server, PostgreSQL."
+    ],
+    correct: 3
+  },
+  {
+    num: 13,
+    text: "O que é auto-contenção?",
+    options: [
+      "Capacidade do banco de realizar backups automáticos sem intervenção.",
+      "Banco contém dados + descrição (metadados).",
+      "Propriedade que impede acesso simultâneo de múltiplos usuários.",
+      "Recurso que permite ao banco se recuperar automaticamente de falhas."
+    ],
+    correct: 1
+  },
+  {
+    num: 14,
+    text: "O que é metadados?",
+    options: [
+      "Dados históricos arquivados que não são mais atualizados.",
+      "Registros duplicados gerados por erros de inserção no banco.",
+      "Dados sobre os dados.",
+      "Informações processadas prontas para exibição ao usuário final."
+    ],
+    correct: 2
+  },
+  {
+    num: 15,
+    text: "O que é Independência dos dados?",
+    options: [
+      "Capacidade de o banco operar sem conexão à internet.",
+      "Restrição que impede que os dados sejam alterados por usuários comuns.",
+      "Alterar estrutura sem afetar aplicações.",
+      "Propriedade que permite replicar dados em múltiplos servidores."
+    ],
+    correct: 2
+  },
+  {
+    num: 16,
+    text: "O que é abstração dos dados no MER?",
+    options: [
+      "Processo de criptografar os dados sensíveis antes do armazenamento.",
+      "Simplificação da realidade em entidades e relacionamentos.",
+      "Técnica para compactar dados e reduzir o espaço em disco.",
+      "Método de conversão de dados analógicos para formato digital."
+    ],
+    correct: 1
+  },
+  {
+    num: 17,
+    text: "O que é visões?",
+    options: [
+      "Cópia completa do banco gerada para fins de auditoria.",
+      "Conjunto de transações agrupadas por um usuário administrador.",
+      "Forma de visualizar partes específicas do banco.",
+      "Modelo físico que descreve como os dados são gravados em disco."
+    ],
+    correct: 2
+  },
+  {
+    num: 18,
+    text: "O que é Transação no SGBD?",
+    options: [
+      "Processo automático de migração de dados entre servidores.",
+      "Conjunto de operações executadas como uma unidade.",
+      "Consulta de leitura realizada por um único usuário no banco.",
+      "Mecanismo de compressão aplicado ao armazenar grandes volumes."
+    ],
+    correct: 1
+  },
+  {
+    num: 19,
+    text: "O que é Integridade Referencial?",
+    options: [
+      "Processo de validar a sintaxe das instruções SQL antes da execução.",
+      "Técnica de criptografia usada para proteger registros sensíveis.",
+      "Restrição que impede inserção de dados duplicados na tabela.",
+      "Garantia de consistência entre tabelas."
+    ],
+    correct: 3
+  },
+  {
+    num: 20,
+    text: "O que é Sistema de Informação?",
+    options: [
+      "Sistema que coleta, processa e distribui informações.",
+      "Banco de dados distribuído em múltiplos servidores geograficamente.",
+      "Conjunto de ferramentas para modelagem e criação de diagramas.",
+      "Software exclusivo para análise estatística de grandes volumes de dados."
+    ],
+    correct: 0
+  },
+  {
+    num: 21,
+    text: "Dê exemplos de aplicações utilizando Banco de Dados?",
+    options: [
+      "Editor de texto, calculadora, agenda de contatos, relógio digital.",
+      "Compilador, depurador, gerenciador de pacotes, terminal.",
+      "Banco, hospital, e-commerce, escola.",
+      "Navegador web, cliente de e-mail, leitor de PDF, player de vídeo."
+    ],
+    correct: 2
+  },
+  {
+    num: 22,
+    text: "O que é Restrição de Segurança?",
+    options: [
+      "Regra que limita o tamanho máximo dos valores em uma coluna.",
+      "Controle de acesso aos dados.",
+      "Mecanismo que impede a execução de duas transações ao mesmo tempo.",
+      "Restrição que impede valores nulos em campos obrigatórios."
+    ],
+    correct: 1
+  },
+  {
+    num: 23,
+    text: "O que é Alto Nível no Modelo de dados?",
+    options: [
+      "Detalhes físicos do armazenamento em disco e memória.",
+      "Nível que representa a visão individual de cada usuário do sistema.",
+      "Camada que descreve os índices e estruturas internas do SGBD.",
+      "Visão conceitual do banco."
+    ],
+    correct: 3
+  },
+  {
+    num: 24,
+    text: "O que é Baixo Nível no Modelo de dados?",
+    options: [
+      "Detalhes físicos do armazenamento.",
+      "Visão conceitual que descreve entidades e seus relacionamentos.",
+      "Representação lógica das tabelas e colunas do banco.",
+      "Nível que representa a visão simplificada para o usuário final."
+    ],
+    correct: 0
+  },
+  {
+    num: 25,
+    text: "O que é Instância?",
+    options: [
+      "Estrutura permanente que define as tabelas e colunas do banco.",
+      "Cópia de segurança criada em um momento específico do tempo.",
+      "Dados atuais do banco.",
+      "Versão compilada de um procedimento armazenado no SGBD."
+    ],
+    correct: 2
+  },
+  {
+    num: 26,
+    text: "O que é Esquema?",
+    options: [
+      "Consulta pré-definida armazenada para reutilização futura.",
+      "Conjunto de dados inseridos em um momento específico do banco.",
+      "Estrutura do banco.",
+      "Diagrama que representa os fluxos de dados entre sistemas."
+    ],
+    correct: 2
+  },
+  {
+    num: 27,
+    text: "Com relação a arquitetura do banco de dados, o que é nível externo?",
+    options: [
+      "Armazenamento físico dos dados em disco.",
+      "Estrutura geral e completa de todas as tabelas do banco.",
+      "Visão do usuário.",
+      "Camada responsável pela otimização de consultas no SGBD."
+    ],
+    correct: 2
+  },
+  {
+    num: 28,
+    text: "Com relação a arquitetura do banco de dados, o que é nível interno?",
+    options: [
+      "Visão personalizada que cada usuário tem do banco de dados.",
+      "Estrutura lógica geral com todas as tabelas e seus relacionamentos.",
+      "Armazenamento físico.",
+      "Camada intermediária que traduz visões do usuário em estrutura lógica."
+    ],
+    correct: 2
+  },
+  {
+    num: 29,
+    text: "Com relação a arquitetura do banco de dados, o que é nível conceitual?",
+    options: [
+      "Visão individual que cada usuário ou aplicação tem do banco.",
+      "Detalhes físicos sobre como os dados são gravados no disco.",
+      "Estrutura geral do banco.",
+      "Camada responsável por controlar transações e acessos simultâneos."
+    ],
+    correct: 2
+  },
+  {
+    num: 30,
+    text: "Explique o que é DDL?",
+    options: [
+      "Linguagem para controle de permissões de acesso (GRANT, REVOKE).",
+      "Linguagem para manipulação de dados (INSERT, UPDATE, DELETE).",
+      "Cria e altera estruturas (CREATE, ALTER).",
+      "Linguagem utilizada para consultar dados existentes no banco (SELECT)."
+    ],
+    correct: 2
+  },
+  {
+    num: 31,
+    text: "Explique o que é DML?",
+    options: [
+      "Linguagem que define e altera a estrutura das tabelas do banco.",
+      "Manipula dados (INSERT, UPDATE, DELETE).",
+      "Linguagem que controla permissões e acessos ao banco de dados.",
+      "Linguagem que descreve os metadados e esquemas do banco."
+    ],
+    correct: 1
+  },
+  {
+    num: 32,
+    text: "Explique o que é DCL?",
+    options: [
+      "Linguagem que cria e modifica estruturas do banco (CREATE, ALTER).",
+      "Linguagem para inserção, atualização e remoção de registros.",
+      "Controle de acesso (GRANT, REVOKE).",
+      "Linguagem para definição de transações e controle de integridade."
+    ],
+    correct: 2
+  },
+  {
+    num: 33,
+    text: "O que é redundância de dados no banco de dados?",
+    options: [
+      "Dados conflitantes em diferentes partes do banco.",
+      "Dados armazenados apenas temporariamente durante o processamento.",
+      "Dados repetidos.",
+      "Dados sem chave primária definida na tabela."
+    ],
+    correct: 2
+  },
+  {
+    num: 34,
+    text: "O que é Inconsistência de dados no banco de dados?",
+    options: [
+      "Dados repetidos em múltiplas tabelas sem necessidade.",
+      "Dados conflitantes.",
+      "Dados sem formatação ou padrão definido.",
+      "Dados que não possuem chave estrangeira associada."
+    ],
+    correct: 1
+  },
+  {
+    num: 35,
+    text: "O que é compartilhamento de dados no banco de dados?",
+    options: [
+      "Processo de exportar dados para outros formatos como CSV ou Excel.",
+      "Mecanismo de replicação que mantém cópias em servidores distintos.",
+      "Vários usuários acessando os mesmos dados.",
+      "Funcionalidade que permite ao administrador distribuir backups."
+    ],
+    correct: 2
+  },
+  {
+    num: 37,
+    text: "O que é restrição de segurança?",
+    options: [
+      "Regra que define o formato obrigatório dos valores em uma coluna.",
+      "Proteção dos dados contra acesso indevido.",
+      "Limitação de tamanho imposta ao banco para controle de espaço.",
+      "Mecanismo que bloqueia transações simultâneas no mesmo registro."
+    ],
+    correct: 1
+  },
+  {
+    num: 38,
+    text: "O que é Independência dos dados no banco de dados?",
+    options: [
+      "Capacidade do banco funcionar sem conexão de rede.",
+      "Propriedade que permite executar consultas sem conhecer SQL.",
+      "Recurso que replica automaticamente as alterações entre servidores.",
+      "Alterações não afetam usuários."
+    ],
+    correct: 3
+  },
+  {
+    num: 40,
+    text: "O que é  no Banco de Dados – Padronização de Dados?",
+    options: [
+      "Processo de eliminar dados duplicados e reduzir redundâncias.",
+      "Técnica de criptografia aplicada a campos sensíveis do banco.",
+      "Dados seguem regras definidas.",
+      "Mecanismo que converte automaticamente tipos de dados incompatíveis."
+    ],
+    correct: 2
+  },
+  {
+    num: 42,
+    text: "O que é chave primária?",
+    options: [
+      "Chave utilizada para criar índices de busca em tabelas grandes.",
+      "Campo que liga uma tabela a outra por meio de uma referência.",
+      "Conjunto de atributos que pode ou não identificar um registro.",
+      "Identifica um registro único."
+    ],
+    correct: 3
+  },
+  {
+    num: 43,
+    text: "O que é chave estrangeira?",
+    options: [
+      "Chave que identifica de forma exclusiva cada registro da tabela.",
+      "Liga tabelas.",
+      "Conjunto de atributos candidatos à identificação primária.",
+      "Índice criado para otimizar consultas em colunas específicas."
+    ],
+    correct: 1
+  },
+  {
+    num: 44,
+    text: "O que é  Entidade no MER?",
+    options: [
+      "Propriedade que descreve uma característica de um objeto.",
+      "Relacionamento entre dois conjuntos de dados distintos.",
+      "Objeto do mundo real.",
+      "Conjunto de regras que define os valores válidos de um atributo."
+    ],
+    correct: 2
+  },
+  {
+    num: 45,
+    text: "O que é  Entidade Fraca no MER?",
+    options: [
+      "Entidade que possui muitos atributos opcionais sem valor definido.",
+      "Entidade que não possui chave primária própria definida.",
+      "Depende de outra entidade.",
+      "Entidade que participa de relacionamentos com cardinalidade N:N."
+    ],
+    correct: 2
+  },
+  {
+    num: 46,
+    text: "O que é padronização dos dados (valor default) no Banco de Dados?",
+    options: [
+      "Conjunto de regras que impede a inserção de valores inválidos.",
+      "Processo de normalização que elimina redundâncias do banco.",
+      "Valor padrão automático.",
+      "Restrição que define o tipo e o tamanho máximo de uma coluna."
+    ],
+    correct: 2
+  },
+  {
+    num: 47,
+    text: "O que atributo monovalorado?",
+    options: [
+      "Atributo cujo valor é calculado a partir de outros atributos.",
+      "Um único valor.",
+      "Atributo que pode ser dividido em subpartes menores.",
+      "Atributo que aceita múltiplos valores para um mesmo registro."
+    ],
+    correct: 1
+  },
+  {
+    num: 48,
+    text: "O que é atributo composto?",
+    options: [
+      "Atributo que armazena vários valores para o mesmo registro.",
+      "Atributo cujo valor é obtido por cálculo a partir de outros dados.",
+      "Dividido em partes.",
+      "Atributo que só pode assumir um único valor por registro."
+    ],
+    correct: 2
+  },
+  {
+    num: 49,
+    text: "O que é atributo derivado?",
+    options: [
+      "Atributo que não pode ser nulo e deve sempre ter valor preenchido.",
+      "Calculado a partir de outro.",
+      "Atributo que identifica exclusivamente cada instância da entidade.",
+      "Atributo formado por subcomponentes como nome e sobrenome."
+    ],
+    correct: 1
+  },
+  {
+    num: 50,
+    text: "O que é Domínio de um Atributo?",
+    options: [
+      "Nome dado ao conjunto de tabelas de um banco relacional.",
+      "Chave candidata que poderia ser usada como identificador primário.",
+      "Conjunto de valores possíveis.",
+      "Restrição que define o relacionamento entre duas entidades."
+    ],
+    correct: 2
+  },
+  {
+    num: 51,
+    text: "O que é Chave Candidata?",
+    options: [
+      "Chave que referencia a chave primária de outra tabela.",
+      "Possível chave primária.",
+      "Índice criado para acelerar buscas em colunas frequentemente usadas.",
+      "Conjunto de atributos sem capacidade de identificar registros únicos."
+    ],
+    correct: 1
+  },
+  {
+    num: 52,
+    text: "O que é índice no SGBD?",
+    options: [
+      "Chave primária composta por mais de um atributo da tabela.",
+      "Cópia de segurança criada periodicamente pelo administrador.",
+      "Melhora busca de dados.",
+      "Conjunto de restrições aplicadas para garantir a integridade referencial."
+    ],
+    correct: 2
+  },
+  {
+    num: 53,
+    text: "O que é Relacionamento ou Tabela de associação?",
+    options: [
+      "Tabela que armazena os metadados e esquemas do banco.",
+      "Conjunto de atributos que compõem a chave primária composta.",
+      "Ligação entre entidades.",
+      "Estrutura que define os domínios e restrições dos atributos."
+    ],
+    correct: 2
+  },
+  {
+    num: 54,
+    text: "O que é Cardinalidade do MER? ",
+    options: [
+      "Número máximo de atributos permitidos em uma entidade.",
+      "Restrição que impede valores duplicados em relacionamentos.",
+      "Nível de abstração utilizado na modelagem conceitual do banco.",
+      "Quantidade de relacionamentos, tipo: (1:1, 1:N, N:N)"
+    ],
+    correct: 3
+  }
+];
+
+const LETTERS = ['A', 'B', 'C', 'D'];
+let questions = [];
+let currentIdx = 0;
+let userAnswers = [];
+let animDir = 'forward';
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  questions = [...ALL_QUESTIONS];
+  userAnswers = new Array(questions.length).fill(null);
+  currentIdx = 0;
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').classList.remove('hidden');
+  renderQuestion(true);
+}
+
+function shuffleQuestions() {
+  const prevAns = {};
+  questions.forEach((q, i) => { prevAns[q.num] = userAnswers[i]; });
+  questions = shuffle(questions);
+  userAnswers = questions.map(q => prevAns[q.num] !== undefined ? prevAns[q.num] : null);
+  currentIdx = 0;
+  renderQuestion(true);
+}
+
+function renderQuestion(forward = true) {
+  const q = questions[currentIdx];
+  const total = questions.length;
+
+  document.getElementById('q-counter').textContent = `${currentIdx + 1} / ${total}`;
+  document.getElementById('answered-count').textContent = userAnswers.filter(a => a !== null).length;
+
+  const pct = ((currentIdx) / total) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  document.getElementById('q-num-label').textContent =
+    `Questão ${String(currentIdx + 1).padStart(2, '0')} — Nº ${q.num} do documento`;
+  document.getElementById('q-text').textContent = q.text;
+
+  const optsList = document.getElementById('options-list');
+  optsList.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option' + (userAnswers[currentIdx] === i ? ' selected' : '');
+    div.innerHTML = `<span class="opt-letter">${LETTERS[i]}</span><span class="opt-text">${opt}</span>`;
+    div.addEventListener('click', () => selectOption(i));
+    optsList.appendChild(div);
+  });
+
+  const card = document.getElementById('question-card');
+  card.classList.remove('anim-in', 'anim-in-back');
+  void card.offsetWidth;
+  card.classList.add(forward ? 'anim-in' : 'anim-in-back');
+
+  document.getElementById('btn-back').style.display = currentIdx > 0 ? 'inline-flex' : 'none';
+
+  const isLast = currentIdx === total - 1;
+  const nextBtn = document.getElementById('btn-next');
+  const finishBtn = document.getElementById('btn-finish');
+  if (isLast) {
+    nextBtn.classList.add('hidden');
+    finishBtn.classList.remove('hidden');
+    const allAnswered = userAnswers.every(a => a !== null);
+    finishBtn.disabled = !allAnswered;
+  } else {
+    nextBtn.classList.remove('hidden');
+    finishBtn.classList.add('hidden');
+  }
+
+  document.getElementById('warn-msg').style.display = 'none';
+}
+
+function selectOption(idx) {
+  userAnswers[currentIdx] = idx;
+  document.querySelectorAll('.option').forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+  document.getElementById('warn-msg').style.display = 'none';
+
+  // Update answered count
+  document.getElementById('answered-count').textContent = userAnswers.filter(a => a !== null).length;
+
+  // Enable finish if last question
+  const isLast = currentIdx === questions.length - 1;
+  if (isLast) {
+    const allAnswered = userAnswers.every(a => a !== null);
+    document.getElementById('btn-finish').disabled = !allAnswered;
+  }
+}
+
+function goNext() {
+  if (userAnswers[currentIdx] === null) {
+    document.getElementById('warn-msg').style.display = 'block';
+    return;
+  }
+  if (currentIdx < questions.length - 1) {
+    currentIdx++;
+    renderQuestion(true);
+  }
+}
+
+function goBack() {
+  if (currentIdx > 0) {
+    currentIdx--;
+    renderQuestion(false);
+  }
+}
+
+function finishQuiz() {
+  const allAnswered = userAnswers.every(a => a !== null);
+  if (!allAnswered) {
+    document.getElementById('warn-msg').style.display = 'block';
+    document.getElementById('warn-msg').textContent = '⚠ Responda todas as questões antes de finalizar.';
+    return;
+  }
+  showResults();
+}
+
+function showResults() {
+  document.getElementById('quiz-screen').classList.add('hidden');
+  const res = document.getElementById('results-screen');
+  res.style.display = 'block';
+
+  let hits = 0;
+  questions.forEach((q, i) => {
+    if (userAnswers[i] === q.correct) hits++;
+  });
+  const misses = questions.length - hits;
+  const pct = Math.round((hits / questions.length) * 100);
+
+  document.getElementById('stat-hits').textContent = hits;
+  document.getElementById('stat-miss').textContent = misses;
+  document.getElementById('stat-total').textContent = questions.length;
+  document.getElementById('score-pct').textContent = pct + '%';
+
+  // Ring color
+  const ringFill = document.getElementById('ring-fill');
+  const color = pct >= 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#f43f5e';
+  ringFill.style.stroke = color;
+  const circumference = 364.4;
+  setTimeout(() => {
+    ringFill.style.strokeDashoffset = circumference - (circumference * pct / 100);
+  }, 100);
+
+  // Gabarito
+  const gabGrid = document.getElementById('gabarito-grid');
+  gabGrid.innerHTML = '';
+  questions.forEach((q, i) => {
+    const correct = q.correct;
+    const userAns = userAnswers[i];
+    const isHit = userAns === correct;
+    const div = document.createElement('div');
+    div.className = 'gab-item ' + (isHit ? 'hit' : 'miss');
+    div.textContent = `${i + 1}-${LETTERS[correct]}`;
+    div.title = `Q${q.num}: Correto=${LETTERS[correct]}, Você=${userAns !== null ? LETTERS[userAns] : '—'}`;
+    gabGrid.appendChild(div);
+  });
+
+  // Review
+  const revList = document.getElementById('review-list');
+  revList.innerHTML = '';
+  questions.forEach((q, i) => {
+    const correct = q.correct;
+    const userAns = userAnswers[i];
+    const isHit = userAns === correct;
+    const div = document.createElement('div');
+    div.className = 'review-item ' + (isHit ? 'hit' : 'miss');
+    div.innerHTML = `
+      <div class="result-icon">${isHit ? '✅' : '❌'}</div>
+      <div class="review-num">Questão ${i + 1} · Nº ${q.num} do documento</div>
+      <div class="review-q">${q.text}</div>
+      <div class="review-answers">
+        <div class="review-ans">
+          <span class="tag tag-user">Sua resposta</span>
+          <span>${userAns !== null ? LETTERS[userAns] + ') ' + q.options[userAns] : 'Não respondida'}</span>
+        </div>
+        ${!isHit ? `<div class="review-ans">
+          <span class="tag tag-correct">Correta</span>
+          <span>${LETTERS[correct]}) ${q.options[correct]}</span>
+        </div>` : ''}
+      </div>
+    `;
+    revList.appendChild(div);
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function restartQuiz() {
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('start-screen').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
